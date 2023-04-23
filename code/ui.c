@@ -1,14 +1,43 @@
 #include<ncurses.h>
+#include<mysql.h>
 #include"ui.h"
 #include"keybindings.h"
 #define SELECTED 1
 #define UNSELECTED 2
-void* item_page(){
+void* add_page(){
+	mysql_query(connection,"select name from item");
+	MYSQL_RES* response=mysql_store_result(connection);
 	erase();
 	refresh();
+	move(0,0);
+	MYSQL_ROW row=mysql_fetch_row(response);
+	attron(COLOR_PAIR(SELECTED));
+	printw("%s\n",row[0]);
+	attroff(COLOR_PAIR(SELECTED));
+	for(unsigned short i=0;i<interface->_maxy && (row=mysql_fetch_row(response));i++)
+		printw("%s\n",row[0]);
+	unsigned short selected=0,start=0;
 	for(;;)switch(getch()){
 		case QUIT:
 			return NULL;
+		case DOWN:
+			erase();
+			refresh();
+			mysql_data_seek(response,start);
+			if(selected<interface->_maxy)
+				selected++;
+			else
+				start++;
+			unsigned short i=0;
+			for(;i<selected && (row=mysql_fetch_row(response));i++)
+				printw("%s\n",row[0]);
+			row=mysql_fetch_row(response);
+			attron(COLOR_PAIR(SELECTED));
+			printw("%s\n",row[0]);
+			attroff(COLOR_PAIR(SELECTED));
+			for(;i<interface->_maxy && (row=mysql_fetch_row(response));i++)
+				printw("%s\n",row[0]);
+			break;
 	}
 }
 void* home(){
@@ -86,7 +115,7 @@ d8'   .8P   88   88.  .88 88.  ... 88  `8b. 88.  .88 88 88 88.  ... 88       \n\
 			delwin(new_item);
 			delwin(generate_report);
 			if(selected==add_item)
-				return &item_page;
+				return &add_page;
 			break;
 	}
 }
